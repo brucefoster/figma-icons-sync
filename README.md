@@ -1,5 +1,5 @@
 ## Sync your local icons with designs in Figma
-This NodeJS-based little tool could help you keep your local icons in sync with the icons from Figma files of your design team and optimize them automatically with [SVGo](https://github.com/svg/svgo/tree/main).
+This NodeJS-based tool keeps your local icons in sync with the icons from Figma files of your design team and optimizes them automatically with [SVGo](https://github.com/svg/svgo/tree/main).
 
 CLI mode is available as well. 
 
