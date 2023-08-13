@@ -12,10 +12,9 @@ const sync = async (figmaLink, config, forceReload = false) => {
         }
 
         const keys = key.split('.');
-        const value = keys.reduce((acc, k) => { 
-            if(acc === 0) acc = config;
-            return k in acc ? acc[k] : -Infinity; 
-        }, 0);
+        const value = keys.reduce((acc, k) => {
+            return acc !== -Infinity && k in acc ? acc[k] : -Infinity; 
+        }, config);
 
         return value !== -Infinity && (strict || typeof value === typeof fallback) ? value : fallback; 
         
