@@ -2,7 +2,7 @@
   "name": "figma-icons-sync",
   "version": "1.0.0",
   "description": "Keep your local icons in sync with the Figma files of your design team",
-  "main": "src/sync.js",
+  "main": "src/index.js",
   "bin": {
     "icons-sync": "src/bin.js"
   },
