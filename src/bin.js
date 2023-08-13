@@ -12,7 +12,6 @@ program
     .version(PKG.version, '-v, --version')
     .arguments('[FIGMA-LINK]')
     .requiredOption('-t, --token <STRING>', 'Figma API token, ' + 'required'.yellow)
-    .option('-i, --input <FIGMA-LINK>', 'input link to Figma frame containing components of icons, ' + 'required'.yellow)
     .option(
         '-o, --output <OUTPUT>',
         'output folder',
@@ -27,7 +26,12 @@ program
     .option(
         '--remove-fill', 
         'remove fill="color" from SVG if the icon is considered monochrome',
-        true
+        false
+    )
+    .option(
+        '--remove-stroke', 
+        'remove stroke="color" from SVG if the icon is considered monochrome',
+        false
     )
     .option(
         '-q, --quiet',
@@ -58,6 +62,7 @@ program
             monochrome: {
                 colors: opts.monochromeColors.split(','),
                 removeFill: opts.removeFill,
+                removeStroke: opts.removeStroke,
             },
     
             fileId: fileId,

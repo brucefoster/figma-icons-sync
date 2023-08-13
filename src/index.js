@@ -31,8 +31,8 @@ const sync = async (figmaLink, config, forceReload = false) => {
 
         monochrome: {
             colors: conf('monochrome.colors', false, ['black', '000000']),
-            removeFill: conf('monochrome.removeFill', false, true),
-            removeStroke: conf('monochrome.removeStroke', false, true),
+            removeFill: conf('monochrome.removeFill', false, false),
+            removeStroke: conf('monochrome.removeStroke', false, false),
         },
 
         cli: {
