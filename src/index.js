@@ -1,4 +1,4 @@
-const { extractIds, _defaultSVGoSettins } = require('./utils');
+const { extractIds, _defaultSVGoSettings } = require('./utils');
 const FigmaSync = require('./sync');
 
 const sync = async (figmaLink, config, forceReload = false) => {
@@ -39,7 +39,7 @@ const sync = async (figmaLink, config, forceReload = false) => {
             enabled: false,
         },
 
-        svgoConfig: conf('svgoConfig', false, _defaultSVGoSettins)
+        svgoConfig: conf('svgoConfig', false, _defaultSVGoSettings)
     };
 
     const syncer = new FigmaSync(options);

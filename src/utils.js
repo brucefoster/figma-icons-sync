@@ -80,7 +80,7 @@ exports.extractIds = extractFileIdsFromUrl;
 /**
  * Default settings for SVGo optimisation
  */
-const _defaultSVGoSettins = {
+const _defaultSVGoSettings = {
     multipass: true,
     plugins: ([
         {
@@ -94,4 +94,4 @@ const _defaultSVGoSettins = {
     ]),
 };
 
-exports._defaultSVGoSettins = _defaultSVGoSettins;
+exports._defaultSVGoSettings = _defaultSVGoSettings;

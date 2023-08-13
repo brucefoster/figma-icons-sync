@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const PKG = require('../package.json');
 const { program } = require('commander');
 const colors = require('colors');
-const { extractIds, _defaultSVGoSettins } = require('./utils');
+const { extractIds, _defaultSVGoSettings } = require('./utils');
 const FigmaSync = require('./sync');
 
 program
@@ -78,7 +78,7 @@ program
                 quiet: opts.quiet
             },
 
-            svgoConfig: svgoConf !== false ? svgoConf : _defaultSVGoSettins
+            svgoConfig: svgoConf !== false ? svgoConf : _defaultSVGoSettings
         };
     
         const syncer = new FigmaSync(options);
