@@ -45,6 +45,10 @@ program
     )
     .option('--no-color', 'output plain text without color')
     .action((str, opts) => {
+        if(str == undefined) {
+            throw new Error('No URL specified: provide a link directly to a frame in the Figma file');
+        }
+
         const { fileId, nodeId } = extractIds(str);
 
         let svgoConf = false;
@@ -55,6 +59,7 @@ program
                 throw new Error(`SVGo config file '${opts.svgoConf}' does not exist`);
             }
         }
+
         const options = {
             token: opts.token,
             outputDirectory: opts.output,
