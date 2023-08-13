@@ -48,7 +48,7 @@ const sync = async (figmaLink, config, forceReload = false) => {
         let changes;
 
         try {
-            await syncer.revalidateLocalChanges();
+            await syncer.computeLocalChanges();
             changes = await syncer.extractIcons(forceReload);
         } catch(err) {
             reject(err);

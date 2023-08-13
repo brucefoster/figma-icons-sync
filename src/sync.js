@@ -134,7 +134,7 @@ class IconsSync {
     /**
      * Checks if the local icons have been deleted manually
     */
-    async revalidateLocalChanges() {
+    async computeLocalChanges() {
         const existingIcons = [];
 
         if (fs.existsSync(this.localHashesFile)) {

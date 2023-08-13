@@ -83,7 +83,7 @@ program
     
         const syncer = new FigmaSync(options);
     
-        syncer.revalidateLocalChanges();
+        syncer.computeLocalChanges();
         syncer.extractIcons(opts.force);
 
     });
