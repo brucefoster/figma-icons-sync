@@ -1,0 +1,17 @@
+{
+    "multipass": true,
+    "js2svg": {
+        "indent": 8,
+        "pretty": true
+      },
+    "plugins": [
+        {
+            "name": "preset-default",
+            "params": {
+                "overrides": {
+                    "removeViewBox": false
+                }
+            }
+        }
+    ]
+}

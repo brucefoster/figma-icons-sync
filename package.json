@@ -1,0 +1,35 @@
+{
+  "name": "figma-icons-sync",
+  "version": "1.0.0",
+  "description": "Keep your local icons in sync with the Figma files of your design team",
+  "main": "src/sync.js",
+  "bin": {
+    "icons-sync": "src/bin.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brucefoster/figma-icons-sync.git"
+  },
+  "keywords": [
+    "figma",
+    "icons",
+    "sync",
+    "download",
+    "design"
+  ],
+  "author": "Alex",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/brucefoster/figma-icons-sync/issues"
+  },
+  "homepage": "https://github.com/brucefoster/figma-icons-sync#readme",
+  "dependencies": {
+    "colors": "^1.4.0",
+    "commander": "^11.0.0",
+    "svgo": "^3.0.2",
+    "transliteration": "^2.3.5"
+  }
+}
