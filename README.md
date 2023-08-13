@@ -35,18 +35,22 @@ const options = {
 sync(
     'https://www.figma.com/file/71UBnODS8DUi06bjMlCH/UI-Kit?type=design&node-id=4909-11807', 
     options
-).then((response) => { 
+)
+.catch(error => console.log(error))
+.then(response => { 
     console.log(response);
 });
 ```
 
-If you need to force re-fetch all the icons, pass `true` as the third arg:
+If you need to force re-fetch all the icons, pass `true` as the third argument:
 ```javascript
 sync(
     'https://www.figma.com/file/71UBnODS8DUi06bjMlCH/UI-Kit?type=design&node-id=4909-11807', 
     options,
     true
-).then((response) => { 
+)
+.catch(error => console.log(error))
+.then((response) => { 
     console.log(response);
 });
 ```
