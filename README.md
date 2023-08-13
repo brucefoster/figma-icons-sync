@@ -1,5 +1,5 @@
-## Sync your local icons with designs in Figma
-This NodeJS-based tool keeps your local icons in sync with the icons from Figma files of your design team and optimizes them automatically with [SVGo](https://github.com/svg/svgo/tree/main).
+## Sync your local icons with Figma
+A NodeJS-based tool that keeps your local icons in sync with the icons from Figma files of your design team and optimizes them automatically with [SVGo](https://github.com/svg/svgo/tree/main).
 
 CLI mode is available as well. 
 
@@ -16,7 +16,7 @@ Upon every call, this tool:
 3. and fetches all the changes optimizing them via SVGo with your preferred config.
 
 There are no special requirements to frame structure — feel free to use Auto Layout, nested frames, groups, add headings, descriptions and etc.
-The only requirement is that the icons must be components (either component or component set).
+The only requirement is that the icons must be components (either components or component sets).
 
 ## Prerequisites
 Get a [Figma personal access token](https://www.figma.com/developers/api#access-tokens) on behalf of the user that can view files with icons.
@@ -42,7 +42,7 @@ sync(
 });
 ```
 
-If you need to force re-fetch all the icons, pass `true` as the third argument:
+If you need to force re-fetch all the icons, pass `true` as the third argument to `sync`:
 ```javascript
 sync(
     'https://www.figma.com/file/71UBnODS8DUi06bjMlCH/UI-Kit?type=design&node-id=4909-11807', 
