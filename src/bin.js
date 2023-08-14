@@ -53,10 +53,21 @@ program
 
         let svgoConf = false;
         if('svgoConf' in opts) {
-            if(fs.existsSync(opts.svgoConf)) {
-                svgoConf = JSON.parse(fs.readFileSync(opts.svgoConf));
-            } else {
+            if(opts.svgoConf.split('.').pop() !== 'json') {
+                throw new Error(`SVGo config file '${opts.svgoConf}' should have .json extension`);
+            } else if(!fs.existsSync(opts.svgoConf)) {
                 throw new Error(`SVGo config file '${opts.svgoConf}' does not exist`);
+            } else {
+                try {
+                    const _contents = JSON.parse(fs.readFileSync(opts.svgoConf));
+                    if(typeof _contents !== 'object') {
+                        throw new Error(`SVGo config file '${opts.svgoConf}' isn't a valid JSON file (object expected)`);
+                    }
+
+                    svgoConf = _contents;
+                } catch(err) {
+                    throw new Error(`SVGo config file '${opts.svgoConf}' isn't a valid JSON file`);
+                }
             }
         }
 
