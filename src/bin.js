@@ -83,8 +83,18 @@ program
     
         const syncer = new FigmaSync(options);
     
-        syncer.computeLocalChanges();
-        syncer.extractIcons(opts.force);
+        new Promise(async (resolve, reject) => {
+            try {
+                await syncer.computeLocalChanges();
+                resolve(await syncer.extractIcons(opts.force));
+            } catch(err) {
+                reject(err);
+            }
+        }).catch(err => {
+            process.stdout.clearLine(0);
+            process.stdout.write('Sync Error'.white.bgRed + '\n');
+            console.error(err);
+        });
 
     });
 
