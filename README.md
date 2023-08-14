@@ -6,7 +6,7 @@ CLI mode is available as well.
 ## Installation
 Via npm:
 ```
-npm -g install figma-icons-sync
+npm install -g figma-icons-sync
 ```
 
 ## How does this work
