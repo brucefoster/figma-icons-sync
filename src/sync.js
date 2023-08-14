@@ -38,7 +38,7 @@ class IconsSync {
         const downloadList = [...changelog.added, ...changelog.modified];
 
         // Downloading new & updated icons or reporting about no changes
-        if (downloadList.length === 0) {
+        if(downloadList.length === 0) {
             this.report('✓ All icons are up-to-date.');
         } else {
             this.report(`Downloading icons, ${downloadList.length} total...`, true);
@@ -50,7 +50,7 @@ class IconsSync {
                 const targetDir = this.outputDirectory + (iconPath.length > 0 ? iconPath.join('/') + '/' : '');
 
                 // Making sure target path exists
-                if (!fs.existsSync(targetDir)) {
+                if(!fs.existsSync(targetDir)) {
                     fs.mkdirSync(targetDir, { recursive: true });
                 }
 
@@ -82,19 +82,19 @@ class IconsSync {
             removed: [],
         };
 
-        if (fs.existsSync(this.localHashesFile) && force !== true) {
+        if(fs.existsSync(this.localHashesFile) && force !== true) {
             const localIcons = await JSON.parse(fs.readFileSync(this.localHashesFile, { encoding: 'utf8' }));
 
             for (const remoteIcon of remoteIcons) {
                 const localIcon = localIcons.find(({ nodeId }) => nodeId === remoteIcon.nodeId);
 
-                if (localIcon === undefined) {
+                if(localIcon === undefined) {
                     // This is a new icon
                     changelog.added.push(remoteIcon);
-                } else if (remoteIcon.hash === localIcon.hash) {
+                } else if(remoteIcon.hash === localIcon.hash) {
                     // The hashes matched, no changes in the remote icon
                     changelog.unmodified.push(remoteIcon);
-                } else if (remoteIcon.hash !== localIcon.hash) {
+                } else if(remoteIcon.hash !== localIcon.hash) {
                     // The hashes didn't match, the remote icon has changed
                     changelog.modified.push(remoteIcon);
                 }
@@ -103,7 +103,7 @@ class IconsSync {
             changelog.removed.push(...localIcons
                 .filter((icon) => remoteIcons.find(({ nodeId }) => nodeId === icon.nodeId) === undefined));
 
-            if (this.cli.enabled && this.cli.quiet === false) {
+            if(this.cli.enabled && this.cli.quiet === false) {
                 this.report('', true);
                 console.group('Changelog:');
                 this.report(`Unmodified: \t${changelog.unmodified.length}`);
@@ -137,7 +137,7 @@ class IconsSync {
     async computeLocalChanges() {
         const existingIcons = [];
 
-        if (fs.existsSync(this.localHashesFile)) {
+        if(fs.existsSync(this.localHashesFile)) {
             const localIcons = await JSON.parse(fs.readFileSync(this.localHashesFile, { encoding: 'utf8' }));
             await localIcons.map((icon) => fs.existsSync(this.outputDirectory + icon.name + '.svg') ? existingIcons.push(icon) : false);
             await this.updateLocalIconsHashes(existingIcons);
@@ -166,7 +166,7 @@ class IconsSync {
 
             for (const child of contents.children) {
                 // Includes data of fill & stroke into hash 
-                if ('fillGeometry' in child || 'strokes' in child) {
+                if('fillGeometry' in child || 'strokes' in child) {
                     vectorData.push([
                         child.fillGeometry, 
                         child.fills,
@@ -178,7 +178,7 @@ class IconsSync {
                     ]);
                 } 
                 
-                if ('children' in child) {
+                if('children' in child) {
                     vectorData.push(...calcIconHash(child, true));
                 }
             }
@@ -188,7 +188,7 @@ class IconsSync {
         };
 
         frameContents.forEach((frame) => {
-            if (frame.type === 'COMPONENT') {
+            if(frame.type === 'COMPONENT') {
                 // Single icon was found
 
                 output.push({
@@ -196,7 +196,7 @@ class IconsSync {
                     nodeId: frame.id,
                     hash: calcIconHash(frame),
                 });
-            } else if (frame.type === 'COMPONENT_SET') {
+            } else if(frame.type === 'COMPONENT_SET') {
                 // Set of components was found: typically it's just variations of a single icon packed in one component.
                 // Appending a prefix of the set's name and transliterating non-latin chars
 
@@ -208,7 +208,7 @@ class IconsSync {
                     nodeId: value.nodeId,
                     hash: value.hash,
                 })));
-            } else if (frame.children) {
+            } else if(frame.children) {
                 // Components are stored at the lowest level, so if the frame has children, skipping right to them
 
                 output.push(...this.findComponentsRecursively(frame.children));
@@ -245,7 +245,7 @@ class IconsSync {
             const isMonochrome = uniqueColors.length <= 1 && this.monochrome.colors.includes(uniqueColors[0]);
 
             // If the icon is considered monochromatic, then remove fills & strokes (if set to true)
-            if (isMonochrome) {
+            if(isMonochrome) {
                 if(this.monochrome.removeFill)
                     svg = svg.replace(/\s?fill=\"\#?([\d\w]+)(?<!none)\"/gm, '');
 

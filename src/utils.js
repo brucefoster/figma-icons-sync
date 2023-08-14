@@ -47,7 +47,7 @@ function sendRequest(endpoint, unpackJson = true, useAuth = true) {
 
     return fetch(endpoint, options)
         .then((response) => {
-            if (!response.ok) {
+            if(!response.ok) {
                 throw new Error(`Unable to reach ${endpoint}, status ${response.status}`);
             }
 
@@ -65,7 +65,7 @@ function extractFileIdsFromUrl(url) {
     const extractIdsRegex = /www\.figma\.com\/file\/([\w\d]+)\/.+(?:\?|\&)node-id=([\d\-]+)/m;
     const matches = url.match(extractIdsRegex);
 
-    if (matches === null || matches.length !== 3) {
+    if(matches === null || matches.length !== 3) {
         throw new Error('Wrong Figma file URL: provide a link directly to a frame');
     }
 
