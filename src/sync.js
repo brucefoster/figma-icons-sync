@@ -46,8 +46,14 @@ class IconsSync {
 
             iconsSVGs.map((icon) => {
                 const iconPath = icon.name.split('/');
-                const iconName = iconPath.pop() + '.svg';
-                const targetDir = this.outputDirectory + (iconPath.length > 0 ? iconPath.join('/') + '/' : '');
+                
+                let iconName = iconPath.pop() + '.svg';
+                let targetDir = this.outputDirectory + (iconPath.length > 0 ? iconPath.join('/') + '/' : '');
+
+                if(this.ignoreSubfolders) {
+                    iconName = icon.name + '.svg';
+                    targetDir = this.outputDirectory;
+                }
 
                 // Making sure target path exists
                 if(!fs.existsSync(targetDir)) {
@@ -187,12 +193,15 @@ class IconsSync {
             return recursively === true ? vectorData : hash;
         };
 
+        const slugifyConfig = {
+            ignore: ['/']
+        };
         frameContents.forEach((frame) => {
             if(frame.type === 'COMPONENT') {
                 // Single icon was found
 
                 output.push({
-                    name: slugify(frame.name.toLowerCase().replace(/\s/g, '-')),
+                    name: slugify(frame.name.toLowerCase().replace(/\s/g, '-'), slugifyConfig),
                     nodeId: frame.id,
                     hash: calcIconHash(frame),
                 });
@@ -200,11 +209,11 @@ class IconsSync {
                 // Set of components was found: typically it's just variations of a single icon packed in one component.
                 // Appending a prefix of the set's name and transliterating non-latin chars
 
-                const componentSetName = slugify(frame.name.toLowerCase().replace(/\s/g, '-'));
+                const componentSetName = slugify(frame.name.toLowerCase().replace(/\s/g, '-'), slugifyConfig);
                 const children = this.findComponentsRecursively(frame.children);
 
                 output.push(...children.map((value) => ({
-                    name: `${componentSetName}__${slugify(value.name.toLowerCase().replace(/=/g, '_'))}`,
+                    name: `${componentSetName}__${slugify(value.name.toLowerCase().replace(/=/g, '_'), slugifyConfig)}`,
                     nodeId: value.nodeId,
                     hash: value.hash,
                 })));
@@ -236,7 +245,7 @@ class IconsSync {
             this.report(`${iconID}/${iconsList.length}\tDownloading '${icon.name}'...`, true);
             let svg = await this.request(iconsURLs[icon.nodeId], false, false);
 
-            // Опередяем цветность иконки
+            // Checking whether an icon is monochromatic
             const listAllColorsRegex = /\s?(?:fill|stroke)=\"\#?([\d\w]+)(?<!none)\"/gm;
             const uniqueColors = [...svg.matchAll(listAllColorsRegex)]
                 .map((el) => el[1])

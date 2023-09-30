@@ -2,6 +2,10 @@ const { extractIds, _defaultSVGoSettings } = require('./utils');
 const FigmaSync = require('./sync');
 
 const sync = async (figmaLink, config, forceReload = false) => {
+    if(process.version.match(/^v(\d+\.\d+)/)[1] < 18) {
+        throw new Error('Node.js 18.0+ is required, yours — ' + process.version);
+    }
+
     if(typeof config !== 'object') {
         throw new Error('Config should be an object');
     }
@@ -25,6 +29,7 @@ const sync = async (figmaLink, config, forceReload = false) => {
     const options = {
         token: conf('apiToken'),
         outputDirectory: conf('output', false, './icons/'),
+        ignoreSubfolders: conf('ignoreSubfolders', false, false),
 
         fileId: fileId,
         nodeId: nodeId,

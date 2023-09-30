@@ -64,9 +64,13 @@ const options = {
     // Directory to upload icons to, default: ./icons/
     output: './icons/',
 
+    // Ignore subfolders in icons' names: if set to true, an icon named «socials/facebook» will be placed in the «socials» subfolder
+    // Default: false
+    ignoreSubfolders: true,
+
     // Settings for monochromatic icons: enable removing fill="" and stroke="" attributes so you can control them with CSS
     monochrome: {
-        // Array of colors (without #). An icon will be considered monochrome if it filled only with one of these colors.
+        // Array of colors (without #). An icon will be considered monochrome if it is filled only with one of these colors.
         // Default: ['black', '000000']
         colors: ['FFFFFF'],
         // Remove fill="color" from monochromatic icons

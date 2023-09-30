@@ -6,6 +6,10 @@ const colors = require('colors');
 const { extractIds, _defaultSVGoSettings } = require('./utils');
 const FigmaSync = require('./sync');
 
+if(process.version.match(/^v(\d+\.\d+)/)[1] < 18) {
+    throw new Error('Node.js 18.0+ is required, yours — ' + process.version);
+}
+
 program
     .name('icons-sync')
     .description(PKG.description)
@@ -16,6 +20,11 @@ program
         '-o, --output <OUTPUT>',
         'output folder',
         './icons/'
+    )
+    .option(
+        '--ignore-subfolders',
+        'ignore subfolders in icon\'s name (e. g. «socials/facebook» will be converted to «socials-facebook»)',
+        false
     )
     .option('--svgo-conf <CONFIG>', 'custom SVGo config file, only .json is supported')
     .option(
@@ -74,6 +83,7 @@ program
         const options = {
             token: opts.token,
             outputDirectory: opts.output,
+            ignoreSubfolders: opts.ignoreSubfolders,
 
             monochrome: {
                 colors: opts.monochromeColors.split(','),
