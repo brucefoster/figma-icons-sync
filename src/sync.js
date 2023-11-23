@@ -20,7 +20,7 @@ class IconsSync {
         }
         
         this.endpointBase = 'https://api.figma.com/v1';
-        this.localHashesFile = this.outputDirectory + '_icons.js';
+        this.localHashesFile = this.outputDirectory + '_icons.json';
     }
 
     /**
