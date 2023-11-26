@@ -1,13 +1,21 @@
 {
   "name": "figma-icons-sync",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "Keep your local icons in sync with the Figma files of your design team",
+  "type": "module",
   "main": "src/index.js",
   "bin": {
     "icons-sync": "src/bin.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test.js",
+    "build": "rollup src/index.js --file dist/index.cjs --format cjs"
+  },
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./src/index.js"
+    }
   },
   "repository": {
     "type": "git",
@@ -32,7 +40,10 @@
     "svgo": "^3.0.2",
     "transliteration": "^2.3.5"
   },
-  "engines" : { 
-    "node" : ">=18.0.0"
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "rollup": "^4.5.2"
   }
 }

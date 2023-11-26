@@ -1,14 +1,17 @@
 #! /usr/bin/env node
-const fs = require('node:fs');
-const PKG = require('../package.json');
-const { program } = require('commander');
-const colors = require('colors');
-const { extractIds, _defaultSVGoSettings } = require('./utils');
-const FigmaSync = require('./sync');
+import fs from 'node:fs';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-if(process.version.match(/^v(\d+\.\d+)/)[1] < 18) {
-    throw new Error('Node.js 18.0+ is required, yours — ' + process.version);
-}
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const PKG = JSON.parse(fs.readFileSync(__dirname + '/../package.json'));
+import { program } from 'commander';
+import colors from 'colors';
+import { extractFileIdsFromUrl, _defaultSVGoSettings, checkRequirements } from './utils.js';
+import FigmaSync from './sync.js';
+
+checkRequirements();
 
 program
     .name('icons-sync')
@@ -58,7 +61,7 @@ program
             throw new Error('No URL specified: provide a link directly to a frame in the Figma file');
         }
 
-        const { fileId, nodeId } = extractIds(str);
+        const { fileId, nodeId } = extractFileIdsFromUrl(str);
 
         let svgoConf = false;
         if('svgoConf' in opts) {

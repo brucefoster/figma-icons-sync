@@ -1,14 +1,96 @@
-import fs from 'node:fs';
-import { optimize } from 'svgo';
-import { slugify } from 'transliteration';
+'use strict';
 
-import {
-    md5,
-    printToConsole,
-    sendRequest
-}  from './utils.js';
+var node_crypto = require('node:crypto');
+var fs = require('node:fs');
+var svgo = require('svgo');
+var transliteration = require('transliteration');
 
-export default class IconsSync {
+/**
+ * Calculates MD5 Hash for vector object contents
+ * @param {string} string
+ */
+function md5(string) {
+    return node_crypto.createHash('md5').update(string).digest('hex');
+}
+/**
+ * Provides console output for CLI mode
+ * @param {string} text
+ * @param {boolean} replaceLine    Replaces current line and appends the carriage return at the EOL 
+*/
+function printToConsole(text, replaceLine = false) {
+    if(this.cli.enabled !== true) { return; }
+    if(this.cli.quiet === true) { return; }
+
+    if(replaceLine === true) {
+        process.stdout.clearLine(0);
+        process.stdout.write(text + '\r');
+    } else {
+        console.log(text);
+    }
+}
+
+/**
+ * Sends HTTP Requests
+ * @param {string} endpoint        Endpoint
+ * @param {boolean} unpackJson     Parse response with JSON.decode and return as object
+ * @param {boolean} useAuth        Send Figma Auth header
+ */
+function sendRequest(endpoint, unpackJson = true, useAuth = true) {
+    const headers = {
+        'X-Figma-Token': this.token,
+    };
+
+    const options = {
+        method: 'GET',
+        headers: useAuth ? headers : [],
+    };
+
+    return fetch(endpoint, options)
+        .then((response) => {
+            if(!response.ok) {
+                throw new Error(`Unable to reach ${endpoint}, status ${response.status}`);
+            }
+
+            return unpackJson ? response.json() : response.text();
+        });
+}
+
+/**
+ * Extracts file ID and frame ID from figma link
+ * @param {string} url  URL to Figma frame containing icons
+ */
+function extractFileIdsFromUrl(url) {
+    const extractIdsRegex = /www\.figma\.com\/file\/([\w\d]+)\/.+(?:\?|\&)node-id=([\d\-]+)/m;
+    const matches = url.match(extractIdsRegex);
+
+    if(matches === null || matches.length !== 3) {
+        throw new Error('Wrong Figma file URL: provide a link directly to a frame');
+    }
+
+    return {
+        fileId: matches[1],
+        nodeId: matches[2],
+    };
+}
+
+/**
+ * Default settings for SVGo optimisation
+ */
+const _defaultSVGoSettings = {
+    multipass: true,
+    plugins: ([
+        {
+            name: 'preset-default',
+            params: {
+                overrides: {
+                    removeViewBox: false,
+                },
+            },
+        },
+    ]),
+};
+
+class IconsSync {
     md5 = md5;
     report = printToConsole;
     request = sendRequest;
@@ -202,7 +284,7 @@ export default class IconsSync {
                 // Single icon was found
 
                 output.push({
-                    name: slugify(frame.name.toLowerCase().replace(/\s/g, '-'), slugifyConfig),
+                    name: transliteration.slugify(frame.name.toLowerCase().replace(/\s/g, '-'), slugifyConfig),
                     nodeId: frame.id,
                     hash: calcIconHash(frame),
                 });
@@ -210,11 +292,11 @@ export default class IconsSync {
                 // Set of components was found: typically it's just variations of a single icon packed in one component.
                 // Appending a prefix of the set's name and transliterating non-latin chars
 
-                const componentSetName = slugify(frame.name.toLowerCase().replace(/\s/g, '-'), slugifyConfig);
+                const componentSetName = transliteration.slugify(frame.name.toLowerCase().replace(/\s/g, '-'), slugifyConfig);
                 const children = this.findComponentsRecursively(frame.children);
 
                 output.push(...children.map((value) => ({
-                    name: `${componentSetName}__${slugify(value.name.toLowerCase().replace(/=/g, '_'), slugifyConfig)}`,
+                    name: `${componentSetName}__${transliteration.slugify(value.name.toLowerCase().replace(/=/g, '_'), slugifyConfig)}`,
                     nodeId: value.nodeId,
                     hash: value.hash,
                 })));
@@ -264,7 +346,7 @@ export default class IconsSync {
             }
 
             // Optimizing with SVGO
-            const cleanedSvg = optimize(svg, this.svgoConfig).data;
+            const cleanedSvg = svgo.optimize(svg, this.svgoConfig).data;
 
             cleanedIcons.push({
                 name: icon.name,
@@ -276,3 +358,63 @@ export default class IconsSync {
         return cleanedIcons;
     }
 }
+
+const sync = async (figmaLink, config, forceReload = false) => {
+    if(process.version.match(/^v(\d+\.\d+)/)[1] < 18) {
+        throw new Error('Node.js 18.0+ is required. Currently running on version ' + process.version);
+    }
+
+    if(typeof config !== 'object') {
+        throw new Error('Config should be an object');
+    }
+
+    const conf = (key, strict = true, fallback = false) => {
+        if(strict === true && key in config === false) {
+            throw new Error(`Required key '${key}' is not present in the config`);
+        }
+
+        const keys = key.split('.');
+        const value = keys.reduce((acc, k) => {
+            return acc !== -Infinity && k in acc ? acc[k] : -Infinity; 
+        }, config);
+
+        return value !== -Infinity && (strict || typeof value === typeof fallback) ? value : fallback; 
+        
+    };
+
+    const { fileId, nodeId } = extractFileIdsFromUrl(figmaLink);
+
+    const options = {
+        token: conf('apiToken'),
+        outputDirectory: conf('output', false, './icons/'),
+        ignoreSubfolders: conf('ignoreSubfolders', false, false),
+
+        fileId: fileId,
+        nodeId: nodeId,
+
+        monochrome: {
+            colors: conf('monochrome.colors', false, ['black', '000000']),
+            removeFill: conf('monochrome.removeFill', false, false),
+            removeStroke: conf('monochrome.removeStroke', false, false),
+        },
+
+        cli: {
+            enabled: false,
+        },
+
+        svgoConfig: conf('svgoConfig', false, _defaultSVGoSettings)
+    };
+
+    const syncer = new IconsSync(options);
+
+    return new Promise(async (resolve, reject) => {
+        try {
+            await syncer.computeLocalChanges();
+            resolve(await syncer.extractIcons(forceReload));
+        } catch(err) {
+            reject(err);
+        }
+    });
+};
+
+exports.sync = sync;

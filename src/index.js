@@ -1,10 +1,8 @@
-const { extractIds, _defaultSVGoSettings } = require('./utils');
-const FigmaSync = require('./sync');
+import { extractFileIdsFromUrl, _defaultSVGoSettings, checkRequirements } from './utils.js';
+import FigmaSync from './sync.js';
 
-const sync = async (figmaLink, config, forceReload = false) => {
-    if(process.version.match(/^v(\d+\.\d+)/)[1] < 18) {
-        throw new Error('Node.js 18.0+ is required, yours — ' + process.version);
-    }
+export const sync = async (figmaLink, config, forceReload = false) => {
+    checkRequirements();
 
     if(typeof config !== 'object') {
         throw new Error('Config should be an object');
@@ -24,7 +22,7 @@ const sync = async (figmaLink, config, forceReload = false) => {
         
     };
 
-    const { fileId, nodeId } = extractIds(figmaLink);
+    const { fileId, nodeId } = extractFileIdsFromUrl(figmaLink);
 
     const options = {
         token: conf('apiToken'),
@@ -58,5 +56,3 @@ const sync = async (figmaLink, config, forceReload = false) => {
         }
     });
 }
-
-exports.sync = sync;

@@ -1,21 +1,19 @@
-const { createHash } = require('node:crypto');
+import { createHash } from 'node:crypto';
 
 /**
  * Calculates MD5 Hash for vector object contents
  * @param {string} string
  */
-function md5(string) {
+export function md5(string) {
     return createHash('md5').update(string).digest('hex');
 };
-
-exports.md5 = md5;
 
 /**
  * Provides console output for CLI mode
  * @param {string} text
  * @param {boolean} replaceLine    Replaces current line and appends the carriage return at the EOL 
 */
-function printToConsole(text, replaceLine = false) {
+export function printToConsole(text, replaceLine = false) {
     if(this.cli.enabled !== true) { return; }
     if(this.cli.quiet === true) { return; }
 
@@ -27,15 +25,13 @@ function printToConsole(text, replaceLine = false) {
     }
 }
 
-exports.printToConsole = printToConsole;
-
 /**
  * Sends HTTP Requests
  * @param {string} endpoint        Endpoint
  * @param {boolean} unpackJson     Parse response with JSON.decode and return as object
  * @param {boolean} useAuth        Send Figma Auth header
  */
-function sendRequest(endpoint, unpackJson = true, useAuth = true) {
+export function sendRequest(endpoint, unpackJson = true, useAuth = true) {
     const headers = {
         'X-Figma-Token': this.token,
     };
@@ -55,13 +51,11 @@ function sendRequest(endpoint, unpackJson = true, useAuth = true) {
         });
 }
 
-exports.sendRequest = sendRequest;
-
 /**
  * Extracts file ID and frame ID from figma link
  * @param {string} url  URL to Figma frame containing icons
  */
-function extractFileIdsFromUrl(url) {
+export function extractFileIdsFromUrl(url) {
     const extractIdsRegex = /www\.figma\.com\/file\/([\w\d]+)\/.+(?:\?|\&)node-id=([\d\-]+)/m;
     const matches = url.match(extractIdsRegex);
 
@@ -75,12 +69,16 @@ function extractFileIdsFromUrl(url) {
     };
 }
 
-exports.extractIds = extractFileIdsFromUrl;
+export function checkRequirements() {
+    if(process.version.match(/^v(\d+\.\d+)/)[1] < 18) {
+        throw new Error('Node.js 18.0+ is required. Currently running on version ' + process.version);
+    }
+}
 
 /**
  * Default settings for SVGo optimisation
  */
-const _defaultSVGoSettings = {
+export const _defaultSVGoSettings = {
     multipass: true,
     plugins: ([
         {
@@ -93,5 +91,3 @@ const _defaultSVGoSettings = {
         },
     ]),
 };
-
-exports._defaultSVGoSettings = _defaultSVGoSettings;
