@@ -18,15 +18,27 @@ Upon every call, this tool:
 There are no special requirements to frame structure — feel free to use Auto Layout, nested frames, groups, add headings, descriptions and etc.
 The only requirement is that the icons must be components (either components or component sets).
 
+The tool will also alert you in the following situations: 
+- when the name of a remote icon changes, 
+- when a remote icon has the same name as your local icon.
+
 ## Prerequisites
 Get a [Figma personal access token](https://www.figma.com/developers/api#access-tokens) on behalf of the user that can view files with icons.
 On Professional and higher plans you can just add a dummy read-only user to the project and issue a token under their profile.
 
 ## API usage
-Use the `sync` function as a part of the front-end developer's workflow:
+Import the module and integrate it into the front-end developer's workflow using the ESM approach:
+```javascript
+import { sync } from 'figma-icons-sync';
+```
+
+Or connect it using CJS approach (with `require`):
 ```javascript
 const { sync } = require('figma-icons-sync');
+```
 
+Then, call the `sync` method, passing the URL of the Figma frame that contains the icons:
+```javascript
 const options = {
     apiToken: '%Insert your token here%',
 };
@@ -42,7 +54,8 @@ sync(
 });
 ```
 
-If you need to force re-fetch all the icons, pass `true` as the third argument to `sync`:
+To force a re-fetch of all icons, pass `true` as the third argument to `sync`.
+*Note. If there is a remote icon sharing the same name, force re-fetch will overwrite local files.*
 ```javascript
 sync(
     'https://www.figma.com/file/71UBnODS8DUi06bjMlCH/UI-Kit?type=design&node-id=4909-11807', 

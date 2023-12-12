@@ -1,4 +1,6 @@
+import fs from 'node:fs';
 import { createHash } from 'node:crypto';
+import colors from 'colors';
 
 /**
  * Calculates MD5 Hash for vector object contents
@@ -69,9 +71,87 @@ export function extractFileIdsFromUrl(url) {
     };
 }
 
+/**
+ * Checks requirements before running the logic
+ */
 export function checkRequirements() {
     if(process.version.match(/^v(\d+\.\d+)/)[1] < 18) {
         throw new Error('Node.js 18.0+ is required. Currently running on version ' + process.version);
+    }
+}
+
+/**
+ * Performs migrations when upgrading to a newer package version
+ */
+export async function performMigrations() {
+    // Migration to 1.1.0
+    const deprecatedHashesFile = this.outputDirectory + '_icons.js';
+    if(fs.existsSync(deprecatedHashesFile) && fs.existsSync(this.localHashesFile) === false) {
+        const contents = await fs.readFileSync(deprecatedHashesFile, { encoding: 'utf8' });
+        try {
+            const icons = JSON.parse(contents);
+            await fs.writeFileSync(this.localHashesFile, JSON.stringify(icons));
+            fs.unlinkSync(deprecatedHashesFile);
+        } catch(err) {
+            this.report('Unable to perform migration to 1.1.0: _icons.js is damaged');
+        }
+    }
+}
+
+/**
+ * Contains pre-defined warnings and messages
+ */
+export function warn(type, data) {
+    const types = {
+        'renamed-unable-to-save': {
+            badges: [
+                'WARNING'.bgYellow.black,
+                'UNABLE TO SAVE'.bgYellow.black
+            ],
+            message: [
+                'The icon was renamed, but the file with target name already exists.',
+                'Old name: '.gray + data.oldName + '.svg', 
+                'New name: '.gray + data.newName + '.svg',
+            ]
+        },
+        'unable-to-save': {
+            badges: [
+                'WARNING'.bgYellow.black,
+                'UNABLE TO SAVE'.bgYellow.black
+            ],
+            message: [
+                `The named '${data.name}.svg' already exists.`
+            ]
+        },
+        'renamed-saved-both': {
+            badges: [
+                'WARNING'.bgYellow.black,
+            ],
+            message: [
+                'The icon has been renamed. Both files have been saved, and no urgent action is required. Please update the icon\'s name in your codebase and then delete the old-named icon.',
+                'Old name: '.gray + data.oldName + '.svg', 
+                'New name: '.gray + data.newName + '.svg',
+            ]
+        },
+        'rename-reminder': {
+            badges: [
+                'REMINDER'.bgWhite.black,
+            ],
+            message: [
+                'Rename the icon in your codebase to match the new name and delete the old icon.',
+                'Old name: '.gray + (typeof data.oldName === 'object' ? data.oldName : [data.oldName]).map(v => v + '.svg').join(', '), 
+                'New name: '.gray + data.newName + '.svg',
+            ]
+        },
+    };
+
+    if(type in types) {
+        const details = types[type];
+        console.warn(
+            details.badges.join(' ') + 
+            '\n' + 
+            details.message.join('\n')
+        );
     }
 }
 

@@ -1,7 +1,7 @@
 node_modules
 coverage
 .DS_Store
-icons
+icons*
 *.log
-test.js
-test.cjs
+tests/
+test.*

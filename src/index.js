@@ -26,7 +26,9 @@ export const sync = async (figmaLink, config, forceReload = false) => {
 
     const options = {
         token: conf('apiToken'),
-        outputDirectory: conf('output', false, './icons/'),
+        outputDirectory: conf('output', false, './icons/').endsWith('/') 
+                            ? conf('output', false, './icons/')
+                            : conf('output', false, './icons/') + '/',
         ignoreSubfolders: conf('ignoreSubfolders', false, false),
 
         fileId: fileId,
@@ -49,7 +51,6 @@ export const sync = async (figmaLink, config, forceReload = false) => {
 
     return new Promise(async (resolve, reject) => {
         try {
-            await syncer.computeLocalChanges();
             resolve(await syncer.extractIcons(forceReload));
         } catch(err) {
             reject(err);

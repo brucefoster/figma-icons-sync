@@ -109,8 +109,27 @@ program
     
         new Promise(async (resolve, reject) => {
             try {
-                await syncer.computeLocalChanges();
-                resolve(await syncer.extractIcons(opts.force));
+                const result = await syncer.extractIcons(opts.force);
+                syncer.report('', true);
+
+                const chlg = result.changelog;
+                console.group('Changelog:');
+                syncer.report(`Unmodified: \t${chlg.unmodified.length}`);
+                syncer.report(`Modified: \t${chlg.modified.length}`.yellow);
+                syncer.report(`Added: \t${chlg.added.length}`.green);
+                syncer.report(
+                    (
+                        `Removed: \t${chlg.removed.length}` +
+                        (chlg.removed.length > 0 ? ' (' + chlg.removed.join(', ') + ')' : '')
+                    ).magenta
+                );
+                console.groupEnd();
+            
+                if(result.totalFetches === 0) {
+                    syncer.report('✓ All icons are up-to-date.');
+                }
+                
+                resolve(result);
             } catch(err) {
                 reject(err);
             }

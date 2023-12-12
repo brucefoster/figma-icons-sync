@@ -1,7 +1,8 @@
 'use strict';
 
-var node_crypto = require('node:crypto');
 var fs = require('node:fs');
+var node_crypto = require('node:crypto');
+require('colors');
 var svgo = require('svgo');
 var transliteration = require('transliteration');
 
@@ -74,6 +75,90 @@ function extractFileIdsFromUrl(url) {
 }
 
 /**
+ * Checks requirements before running the logic
+ */
+function checkRequirements() {
+    if(process.version.match(/^v(\d+\.\d+)/)[1] < 18) {
+        throw new Error('Node.js 18.0+ is required. Currently running on version ' + process.version);
+    }
+}
+
+/**
+ * Performs migrations when upgrading to a newer package version
+ */
+async function performMigrations() {
+    // Migration to 1.1.0
+    const deprecatedHashesFile = this.outputDirectory + '_icons.js';
+    if(fs.existsSync(deprecatedHashesFile) && fs.existsSync(this.localHashesFile) === false) {
+        const contents = await fs.readFileSync(deprecatedHashesFile, { encoding: 'utf8' });
+        try {
+            const icons = JSON.parse(contents);
+            await fs.writeFileSync(this.localHashesFile, JSON.stringify(icons));
+            fs.unlinkSync(deprecatedHashesFile);
+        } catch(err) {
+            this.report('Unable to perform migration to 1.1.0: _icons.js is damaged');
+        }
+    }
+}
+
+/**
+ * Contains pre-defined warnings and messages
+ */
+function warn(type, data) {
+    const types = {
+        'renamed-unable-to-save': {
+            badges: [
+                'WARNING'.bgYellow.black,
+                'UNABLE TO SAVE'.bgYellow.black
+            ],
+            message: [
+                'The icon was renamed, but the file with target name already exists.',
+                'Old name: '.gray + data.oldName + '.svg', 
+                'New name: '.gray + data.newName + '.svg',
+            ]
+        },
+        'unable-to-save': {
+            badges: [
+                'WARNING'.bgYellow.black,
+                'UNABLE TO SAVE'.bgYellow.black
+            ],
+            message: [
+                `The named '${data.name}.svg' already exists.`
+            ]
+        },
+        'renamed-saved-both': {
+            badges: [
+                'WARNING'.bgYellow.black,
+            ],
+            message: [
+                'The icon has been renamed. Both files have been saved, and no urgent action is required. Please update the icon\'s name in your codebase and then delete the old-named icon.',
+                'Old name: '.gray + data.oldName + '.svg', 
+                'New name: '.gray + data.newName + '.svg',
+            ]
+        },
+        'rename-reminder': {
+            badges: [
+                'REMINDER'.bgWhite.black,
+            ],
+            message: [
+                'Rename the icon in your codebase to match the new name and delete the old icon.',
+                'Old name: '.gray + (typeof data.oldName === 'object' ? data.oldName : [data.oldName]).map(v => v + '.svg').join(', '), 
+                'New name: '.gray + data.newName + '.svg',
+            ]
+        },
+    };
+
+    if(type in types) {
+        const details = types[type];
+        console.warn(
+            details.badges.join(' ') + 
+            '\n' + 
+            details.message.join('\n')
+        );
+    }
+}
+
+/**
  * Default settings for SVGo optimisation
  */
 const _defaultSVGoSettings = {
@@ -94,6 +179,10 @@ class IconsSync {
     md5 = md5;
     report = printToConsole;
     request = sendRequest;
+    performMigrations = performMigrations;
+    warn = warn;
+
+    localStorage = [];
 
     constructor(options) {
         for(const key of Object.keys(options)) {
@@ -108,6 +197,7 @@ class IconsSync {
      * Primary logic: fetching, comparing to local, updating & downloading
     */
     async extractIcons(forceReload = false) {
+        await this.performMigrations();
         this.report('Scanning the Figma file for the icons...', true);
 
         // Connecting to Figma, looking for components
@@ -115,24 +205,43 @@ class IconsSync {
         const iconsList = this.findComponentsRecursively(frameContents);
 
         // Comparing changes with local folder
-        const changelog = await this.compareChanges(iconsList, forceReload);
-        const downloadList = [...changelog.added, ...changelog.modified];
+        const changelog = await this.consolidateChanges(iconsList, forceReload);
 
-        // Downloading new & updated icons or reporting about no changes
-        if(downloadList.length === 0) {
-            this.report('✓ All icons are up-to-date.');
-        } else {
-            this.report(`Downloading icons, ${downloadList.length} total...`, true);
-            const iconsSVGs = await this.downloadAndCleanIcons(downloadList);
+        const downloadList = [
+            ...changelog.added, 
+            ...changelog.modified, 
+            ...changelog.restored
+        ];
+        const iconsContents = [
+            ...changelog.unmodified, 
+            ...changelog.removed
+        ].map(icon => {
+            const names = [icon.name, ...icon.previousNames];
+            for(const name of names) {
+                if(fs.existsSync(this.outputDirectory + name + '.svg')) {
+                    icon.svg = fs.readFileSync(this.outputDirectory + name + '.svg');
+                }
+            }
+            return icon;
+        });
 
-            iconsSVGs.map((icon) => {
-                const iconPath = icon.name.split('/');
+        const save = (icon, saveUnderPreviousNames = false) => {
+            const namesList = [icon.name];
+
+            if(saveUnderPreviousNames === true) {
+                namesList.push(...icon.previousNames);
+            }
+
+            for(const name of namesList) {
+                if(name == null) continue;
                 
+                const iconPath = name.split('/');
+            
                 let iconName = iconPath.pop() + '.svg';
                 let targetDir = this.outputDirectory + (iconPath.length > 0 ? iconPath.join('/') + '/' : '');
 
                 if(this.ignoreSubfolders) {
-                    iconName = icon.name + '.svg';
+                    iconName = name.split('/').join('_') + '.svg';
                     targetDir = this.outputDirectory;
                 }
 
@@ -143,11 +252,92 @@ class IconsSync {
 
                 // Writing icon
                 fs.writeFileSync(targetDir + iconName, icon.svg);
-            });
+            }
+        };
 
-            this.updateLocalIconsHashes([...iconsList, ...changelog.removed]);
-            this.report(`${downloadList.length} ${(downloadList.length % 10 == 1 ? 'icon was' : 'icons were')} updated.`.green, false);
+        const exists = async (icon) => {
+            return !forceReload && fs.existsSync(this.outputDirectory + icon.name + '.svg');
+        };
+
+        const getType = (icon) => {
+            return Object.keys(changelog).find((key) => changelog[key].find(({ nodeId }) => nodeId === icon.nodeId) != undefined)
+        };
+
+        // Downloading new & updated icons or reporting about no changes
+        if(downloadList.length > 0) {
+            this.report(`Downloading icons, ${downloadList.length} total...`, true);
+            const iconsSVGs = await this.downloadAndCleanIcons(downloadList);
+            iconsContents.push(...iconsSVGs);
         }
+
+        for(let iconID in iconsContents) {
+            const icon = iconsContents[iconID];
+            const type = getType(icon);
+
+            // If icon was renamed, saving icon both under old and new names
+            if(icon.isRenamed) {
+                const data = {
+                    newName: icon.name,
+                    oldName: icon.previousNames.slice(-1)[0]
+                };
+                
+                // If the icon's name reverted to the previous one, new name should be deleted from the list of previous names
+                if(icon.previousNames.indexOf(icon.name) != -1) {
+                    icon.previousNames = icon.previousNames.filter(v => v !== icon.name);
+                    save(icon, true);
+                    this.warn('renamed-saved-both', data);
+                
+                // Checking if able to write a new file
+                } else if(await exists(icon)) {
+                    // Reverting icon's name to the old one
+                    icon.name = data.oldName;
+                    // Reporting about the situation
+                    this.warn('renamed-unable-to-save', data);
+                // If icon does not exist
+                } else {
+                    // Saving both old and new icons
+                    save(icon, true);
+                    this.warn('renamed-saved-both', data);
+                }
+            // If an icon is new, try to save it or warn if unable
+            } else if(type == 'added') {
+                const data = {
+                    name: icon.name
+                };
+
+                if(await exists(icon)) {
+                    delete iconsContents[iconID];
+                   this.warn('unable-to-save', data);
+                } else {
+                    save(icon);
+                }
+            // If the icon was modified in any way, save it under current and all previous names
+            } else {
+                // Checking for previous names
+                icon.previousNames = icon.previousNames.filter((name) => 
+                    name !== icon.name && fs.existsSync(this.outputDirectory + name + '.svg')
+                );
+
+                if(icon.previousNames.length > 0) {
+                    const data = {
+                        oldName: icon.previousNames,
+                        newName: icon.name
+                    };
+
+                    this.warn('rename-reminder', data);
+                }
+
+                // Saving changes when needed
+                if(type != 'unmodified') {
+                    save(icon, true);
+                }
+            }
+        }
+
+        this.updateLocalIconsHashes(iconsContents.map(icon => {
+            delete icon.svg;
+            return icon;
+        }));
 
         return {
             changelog: Object.keys(changelog).reduce((acc, key) => { 
@@ -161,49 +351,78 @@ class IconsSync {
     /**
      * Compares local and remote icons for changes, additions and deletions 
     */
-    async compareChanges(remoteIcons, force = false) {
+    async consolidateChanges(remoteIcons, force = false) {
         const changelog = {
             unmodified: [],
             modified: [],
             added: [],
+            restored: [],
             removed: [],
         };
 
+        const format = (icon) => {
+            return {
+                nodeId: icon.nodeId,
+                name: icon.name,
+                previousNames: 'previousNames' in icon ? icon.previousNames : [],
+                isRenamed: false,
+                hash: icon.hash
+            };
+        };
+
+        remoteIcons = remoteIcons.map(icon => format(icon));
+
         if(fs.existsSync(this.localHashesFile) && force !== true) {
-            const localIcons = await JSON.parse(fs.readFileSync(this.localHashesFile, { encoding: 'utf8' }));
+            const localIcons = await JSON.parse(
+                fs.readFileSync(this.localHashesFile, { encoding: 'utf8' })
+            ).map(icon => format(icon));
 
             for (const remoteIcon of remoteIcons) {
                 const localIcon = localIcons.find(({ nodeId }) => nodeId === remoteIcon.nodeId);
 
+                // This is a new icon
                 if(localIcon === undefined) {
-                    // This is a new icon
                     changelog.added.push(remoteIcon);
-                } else if(remoteIcon.hash === localIcon.hash) {
+                
+                // This icon exists or has existed
+                } else {
+                    // Preserving previous names
+                    remoteIcon.previousNames = localIcon.previousNames;
+
+                    // Checking if name has changed
+                    if(localIcon.name != remoteIcon.name) {
+                        // If the icon's old name is not already in the list of previous names, then add it
+                        if(remoteIcon.previousNames.indexOf(localIcon.name) == -1) {
+                            remoteIcon.previousNames.push(localIcon.name);
+                        }
+                        remoteIcon.isRenamed = true;
+                    }
+
                     // The hashes matched, no changes in the remote icon
-                    changelog.unmodified.push(remoteIcon);
-                } else if(remoteIcon.hash !== localIcon.hash) {
-                    // The hashes didn't match, the remote icon has changed
-                    changelog.modified.push(remoteIcon);
+                    if(remoteIcon.hash === localIcon.hash) {
+                        // Checking if icon exists
+                        if(fs.existsSync(this.outputDirectory + localIcon.name + '.svg')) {
+                            changelog.unmodified.push(remoteIcon);
+                        // Icon does not exist
+                        } else {
+                            changelog.restored.push(remoteIcon);
+                        }
+                    // Hashes don't match: the icon has changed
+                    } else if(remoteIcon.hash !== localIcon.hash) {
+                        // Checking if icon exists
+                        if(fs.existsSync(this.outputDirectory + localIcon.name + '.svg')) {
+                            changelog.modified.push(remoteIcon);
+                        // Icon does not exist
+                        } else {
+                            changelog.restored.push(remoteIcon);
+                        }
+                    }
                 }
             }
-
+            
             changelog.removed.push(...localIcons
-                .filter((icon) => remoteIcons.find(({ nodeId }) => nodeId === icon.nodeId) === undefined));
-
-            if(this.cli.enabled && this.cli.quiet === false) {
-                this.report('', true);
-                console.group('Changelog:');
-                this.report(`Unmodified: \t${changelog.unmodified.length}`);
-                this.report(`Modified: \t${changelog.modified.length}`.yellow);
-                this.report(`Added: \t${changelog.added.length}`.green);
-                this.report(
-                    (
-                        `Removed: \t${changelog.removed.length}` +
-                        (changelog.removed.length > 0 ? ' (' + changelog.removed.map((value) => value.name + '.svg').join(', ') + ')' : '')
-                    ).magenta
-                );
-                console.groupEnd();
-            }
+                .filter((icon) => remoteIcons.find(({ nodeId }) => nodeId === icon.nodeId) === undefined)
+                .filter((icon) => fs.existsSync(this.outputDirectory + icon.name + '.svg')));
         } else {
             changelog.added.push(...remoteIcons);
         }
@@ -216,19 +435,6 @@ class IconsSync {
     */
     async updateLocalIconsHashes(iconsList) {
         await fs.writeFileSync(this.localHashesFile, JSON.stringify(iconsList));
-    }
-
-    /**
-     * Checks if the local icons have been deleted manually
-    */
-    async computeLocalChanges() {
-        const existingIcons = [];
-
-        if(fs.existsSync(this.localHashesFile)) {
-            const localIcons = await JSON.parse(fs.readFileSync(this.localHashesFile, { encoding: 'utf8' }));
-            await localIcons.map((icon) => fs.existsSync(this.outputDirectory + icon.name + '.svg') ? existingIcons.push(icon) : false);
-            await this.updateLocalIconsHashes(existingIcons);
-        }
     }
 
     /**
@@ -301,7 +507,7 @@ class IconsSync {
                     hash: value.hash,
                 })));
             } else if(frame.children) {
-                // Components are stored at the lowest level, so if the frame has children, skipping right to them
+                // Components are stored at the lowest level, so if the frame has children, skipping right to children
 
                 output.push(...this.findComponentsRecursively(frame.children));
             }
@@ -347,22 +553,17 @@ class IconsSync {
 
             // Optimizing with SVGO
             const cleanedSvg = svgo.optimize(svg, this.svgoConfig).data;
+            icon.svg = cleanedSvg;
 
-            cleanedIcons.push({
-                name: icon.name,
-                svg: cleanedSvg,
-            });
+            cleanedIcons.push(icon);
         }
 
-        this.report('', true);
         return cleanedIcons;
     }
 }
 
 const sync = async (figmaLink, config, forceReload = false) => {
-    if(process.version.match(/^v(\d+\.\d+)/)[1] < 18) {
-        throw new Error('Node.js 18.0+ is required. Currently running on version ' + process.version);
-    }
+    checkRequirements();
 
     if(typeof config !== 'object') {
         throw new Error('Config should be an object');
@@ -386,7 +587,9 @@ const sync = async (figmaLink, config, forceReload = false) => {
 
     const options = {
         token: conf('apiToken'),
-        outputDirectory: conf('output', false, './icons/'),
+        outputDirectory: conf('output', false, './icons/').endsWith('/') 
+                            ? conf('output', false, './icons/')
+                            : conf('output', false, './icons/') + '/',
         ignoreSubfolders: conf('ignoreSubfolders', false, false),
 
         fileId: fileId,
@@ -409,7 +612,6 @@ const sync = async (figmaLink, config, forceReload = false) => {
 
     return new Promise(async (resolve, reject) => {
         try {
-            await syncer.computeLocalChanges();
             resolve(await syncer.extractIcons(forceReload));
         } catch(err) {
             reject(err);

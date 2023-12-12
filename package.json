@@ -8,7 +8,7 @@
     "icons-sync": "src/bin.js"
   },
   "scripts": {
-    "test": "node test.js",
+    "test": "node tests/bundle",
     "build": "rollup src/index.js --file dist/index.cjs --format cjs"
   },
   "exports": {
