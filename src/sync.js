@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import { optimize } from 'svgo';
 import { slugify } from 'transliteration';
-import colors from 'colors';
 
 import {
     md5,
