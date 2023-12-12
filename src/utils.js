@@ -147,6 +147,8 @@ export function warn(type, data) {
 
     if(type in types) {
         const details = types[type];
+
+        this.report('', true);
         console.warn(
             details.badges.join(' ') + 
             '\n' + 

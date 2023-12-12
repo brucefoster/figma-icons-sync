@@ -117,6 +117,7 @@ program
                 syncer.report(`Unmodified: \t${chlg.unmodified.length}`);
                 syncer.report(`Modified: \t${chlg.modified.length}`.yellow);
                 syncer.report(`Added: \t${chlg.added.length}`.green);
+                syncer.report(`Restored: \t${chlg.restored.length}`.blue);
                 syncer.report(
                     (
                         `Removed: \t${chlg.removed.length}` +
