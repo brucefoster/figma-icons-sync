@@ -42,16 +42,19 @@ export default class IconsSync {
         // Comparing changes with local folder
         const changelog = await this.consolidateChanges(iconsList, forceReload);
 
+        // Building the list of icons to download
         const downloadList = [
             ...changelog.added, 
             ...changelog.modified, 
             ...changelog.restored
         ];
+
+        // Building the list of unmodified icons
         const iconsContents = [
             ...changelog.unmodified, 
             ...changelog.removed
         ].map(icon => {
-            const names = [icon.name, ...icon.previousNames];
+            const names = [...icon.previousNames, icon.name];
             for(const name of names) {
                 if(fs.existsSync(this.outputDirectory + name + '.svg')) {
                     icon.svg = fs.readFileSync(this.outputDirectory + name + '.svg');
@@ -60,6 +63,11 @@ export default class IconsSync {
             return icon;
         });
 
+        /**
+         * Saves an icon to filesystem
+         * @param {*} icon 
+         * @param {*} saveUnderPreviousNames 
+         */
         const save = (icon, saveUnderPreviousNames = false) => {
             const namesList = [icon.name];
 
@@ -90,21 +98,33 @@ export default class IconsSync {
             }
         };
 
+        /**
+         * Check if an icon exists on filesystem.
+         * Returns false when force re-fetch is requested
+         * @param {*} icon 
+         * @returns 
+         */
         const exists = async (icon) => {
             return !forceReload && fs.existsSync(this.outputDirectory + icon.name + '.svg');
         };
 
+        /**
+         * Returns the modification type of an icon
+         * @param {*} icon 
+         * @returns 
+         */
         const getType = (icon) => {
             return Object.keys(changelog).find((key) => changelog[key].find(({ nodeId }) => nodeId === icon.nodeId) != undefined)
         };
 
-        // Downloading new & updated icons or reporting about no changes
+        // Downloading new & updated icons
         if(downloadList.length > 0) {
             this.report(`Downloading icons, ${downloadList.length} total...`, true);
             const iconsSVGs = await this.downloadAndCleanIcons(downloadList);
             iconsContents.push(...iconsSVGs);
         }
 
+        // Processing changes and renames
         for(let iconID in iconsContents) {
             const icon = iconsContents[iconID];
             const type = getType(icon);
@@ -117,7 +137,7 @@ export default class IconsSync {
                 };
                 
                 // If the icon's name reverted to the previous one, new name should be deleted from the list of previous names
-                if(icon.previousNames.indexOf(icon.name) != -1) {
+                if(icon.previousNames.includes(icon.name)) {
                     icon.previousNames = icon.previousNames.filter(v => v !== icon.name);
                     save(icon, true);
                     this.warn('renamed-saved-both', data);
@@ -128,13 +148,15 @@ export default class IconsSync {
                     icon.name = data.oldName;
                     // Reporting about the situation
                     this.warn('renamed-unable-to-save', data);
+                    
                 // If icon does not exist
                 } else {
                     // Saving both old and new icons
                     save(icon, true);
                     this.warn('renamed-saved-both', data);
                 }
-            // If an icon is new, try to save it or warn if unable
+
+            // If a new icon is detected, attempt to save it or provide a warning if a conflict arises
             } else if(type == 'added') {
                 const data = {
                     name: icon.name
@@ -142,17 +164,19 @@ export default class IconsSync {
 
                 if(await exists(icon)) {
                     delete iconsContents[iconID];
-                   this.warn('unable-to-save', data);
+                    this.warn('unable-to-save', data);
                 } else {
                     save(icon);
                 }
-            // If the icon was modified in any way, save it under current and all previous names
+
+            // If the icon was modified in any way, save it under its current and all previous names
             } else {
-                // Checking for previous names
+                // Checking & filtering the previous names
                 icon.previousNames = icon.previousNames.filter((name) => 
                     name !== icon.name && fs.existsSync(this.outputDirectory + name + '.svg')
                 );
 
+                // Reminding to remove usages of the old names from codebase
                 if(icon.previousNames.length > 0) {
                     const data = {
                         oldName: icon.previousNames,
@@ -162,18 +186,22 @@ export default class IconsSync {
                     this.warn('rename-reminder', data);
                 }
 
-                // Saving changes when needed
+                // Saving changes when the icon was modified
                 if(type != 'unmodified') {
                     save(icon, true);
                 }
             }
         }
 
-        this.updateLocalIconsHashes(iconsContents.map(icon => {
+        this.updateLocalIconsDb(iconsContents.map(icon => {
+            // Minifying local database by removing icon contents and non-required params
             delete icon.svg;
+            delete icon.isRenamed;
+
             return icon;
         }));
 
+        // Returns changelog without superfluous data
         return {
             changelog: Object.keys(changelog).reduce((acc, key) => { 
                 acc[key] = changelog[key].map((icon) => icon.name + '.svg'); 
@@ -227,7 +255,7 @@ export default class IconsSync {
                     // Checking if name has changed
                     if(localIcon.name != remoteIcon.name) {
                         // If the icon's old name is not already in the list of previous names, then add it
-                        if(remoteIcon.previousNames.indexOf(localIcon.name) == -1) {
+                        if(remoteIcon.previousNames.includes(localIcon.name) === false) {
                             remoteIcon.previousNames.push(localIcon.name);
                         }
                         remoteIcon.isRenamed = true;
@@ -238,15 +266,18 @@ export default class IconsSync {
                         // Checking if icon exists
                         if(fs.existsSync(this.outputDirectory + localIcon.name + '.svg')) {
                             changelog.unmodified.push(remoteIcon);
+
                         // Icon does not exist
                         } else {
                             changelog.restored.push(remoteIcon);
                         }
+
                     // Hashes don't match: the icon has changed
                     } else if(remoteIcon.hash !== localIcon.hash) {
                         // Checking if icon exists
                         if(fs.existsSync(this.outputDirectory + localIcon.name + '.svg')) {
                             changelog.modified.push(remoteIcon);
+
                         // Icon does not exist
                         } else {
                             changelog.restored.push(remoteIcon);
@@ -255,6 +286,7 @@ export default class IconsSync {
                 }
             }
             
+            // Detecting removed icons & filtering those non-existing on the filesystem
             changelog.removed.push(...localIcons
                 .filter((icon) => remoteIcons.find(({ nodeId }) => nodeId === icon.nodeId) === undefined)
                 .filter((icon) => fs.existsSync(this.outputDirectory + icon.name + '.svg')));
@@ -266,9 +298,9 @@ export default class IconsSync {
     }
 
     /**
-     * Saves the file with local icons hashes
+     * Saves the JSON file with the list of local icons and their hashes
     */
-    async updateLocalIconsHashes(iconsList) {
+    async updateLocalIconsDb(iconsList) {
         await fs.writeFileSync(this.localHashesFile, JSON.stringify(iconsList));
     }
 
@@ -375,6 +407,7 @@ export default class IconsSync {
                 .map((el) => el[1])
                 .filter((value, index, array) => array.indexOf(value) === index);
 
+            // TODO: check for invisible frames
             const isMonochrome = uniqueColors.length <= 1 && this.monochrome.colors.includes(uniqueColors[0]);
 
             // If the icon is considered monochromatic, then remove fills & strokes (if set to true)
