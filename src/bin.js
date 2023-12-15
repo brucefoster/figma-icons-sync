@@ -85,7 +85,7 @@ program
 
         const options = {
             token: opts.token,
-            outputDirectory: opts.output,
+            outputDirectory: opts.output + (opts.output.endsWith('/') ? '' : '/'),
             ignoreSubfolders: opts.ignoreSubfolders,
 
             monochrome: {
@@ -110,26 +110,6 @@ program
         new Promise(async (resolve, reject) => {
             try {
                 const result = await syncer.extractIcons(opts.force);
-                syncer.report('', true);
-
-                const chlg = result.changelog;
-                console.group('Changelog:');
-                syncer.report(`Unmodified: \t${chlg.unmodified.length}`);
-                syncer.report(`Modified: \t${chlg.modified.length}`.yellow);
-                syncer.report(`Added: \t${chlg.added.length}`.green);
-                syncer.report(`Restored: \t${chlg.restored.length}`.blue);
-                syncer.report(
-                    (
-                        `Removed: \t${chlg.removed.length}` +
-                        (chlg.removed.length > 0 ? ' (' + chlg.removed.join(', ') + ')' : '')
-                    ).magenta
-                );
-                console.groupEnd();
-            
-                if(result.totalFetches === 0) {
-                    syncer.report('✓ All icons are up-to-date.');
-                }
-                
                 resolve(result);
             } catch(err) {
                 reject(err);

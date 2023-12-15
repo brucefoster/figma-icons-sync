@@ -101,61 +101,120 @@ export async function performMigrations() {
 /**
  * Contains pre-defined warnings and messages
  */
-export function warn(type, data) {
-    const types = {
+export function warn(event, data) {
+    const listFilenames = (any) => {
+        return (typeof any === 'object' && any instanceof Array ? any : [ any ]).map(v => v + '.svg');
+    };
+
+    const events = {
         'renamed-unable-to-save': {
+            type: 'error',
             badges: [
                 'WARNING'.bgYellow.black,
                 'UNABLE TO SAVE'.bgYellow.black
             ],
             message: [
                 'The icon was renamed, but the file with target name already exists.',
-                'Old name: '.gray + data.oldName + '.svg', 
-                'New name: '.gray + data.newName + '.svg',
-            ]
+                'Former names:\t'.gray + listFilenames(data.previousNames).join(', '), 
+                'Present name:\t'.gray + data.presentName + '.svg',
+            ],
+            filenames: {
+                former: listFilenames(data.previousNames),
+                present: data.presentName + '.svg',
+            }
         },
         'unable-to-save': {
+            type: 'error',
             badges: [
                 'WARNING'.bgYellow.black,
                 'UNABLE TO SAVE'.bgYellow.black
             ],
             message: [
-                `The named '${data.name}.svg' already exists.`
-            ]
+                `The icon named '${data.name}.svg' already exists.`
+            ],
+            filenames: {
+                present: data.name + '.svg',
+            }
         },
         'renamed-saved-both': {
+            type: 'warning',
             badges: [
                 'WARNING'.bgYellow.black,
             ],
             message: [
                 'The icon has been renamed. Both files have been saved, and no urgent action is required. Please update the icon\'s name in your codebase and then delete the old-named icon.',
-                'Old name: '.gray + data.oldName + '.svg', 
-                'New name: '.gray + data.newName + '.svg',
-            ]
+                'Former names:\t'.gray + listFilenames(data.previousNames).join(', '), 
+                'Present name:\t'.gray + data.presentName + '.svg',
+            ],
+            filenames: {
+                former: listFilenames(data.previousNames),
+                present: data.presentName + '.svg',
+            }
         },
         'rename-reminder': {
+            type: 'reminder',
             badges: [
                 'REMINDER'.bgWhite.black,
             ],
             message: [
                 'Rename the icon in your codebase to match the new name and delete the old icon.',
-                'Old name: '.gray + (typeof data.oldName === 'object' ? data.oldName : [data.oldName]).map(v => v + '.svg').join(', '), 
-                'New name: '.gray + data.newName + '.svg',
-            ]
+                'Former names:\t'.gray + listFilenames(data.previousNames).join(', '), 
+                'Present name:\t'.gray + data.presentName + '.svg',
+            ],
+            filenames: {
+                former: listFilenames(data.previousNames),
+                present: data.presentName + '.svg',
+            }
         },
     };
 
-    if(type in types) {
-        const details = types[type];
+    if(event in events) {
+        const data = events[event];
+        this.eventsList.push({
+            event: event,
+            description: data.message[0],
+            filenames: data.filenames
+        });
 
         this.report('', true);
-        console.warn(
-            details.badges.join(' ') + 
+        this.report(
+            data.badges.join(' ') + 
             '\n' + 
-            details.message.join('\n')
+            data.message.join('\n')
         );
     }
 }
+
+/**
+ * Displays the human-readable changelog in the console
+ * @param {*} result 
+ * @returns 
+ */
+export function visualiseChangelog(result) {
+    if(this.cli.enabled !== true) { return; }
+
+    const changelog = result.changelog;
+    const totalFetches = result.totalFetches;
+
+    this.report('', true);
+    
+    console.group('Changelog:');
+    this.report(`Unmodified: \t${changelog.unmodified.length}`);
+    this.report(`Modified: \t${changelog.modified.length}`.yellow);
+    this.report(`Added: \t${changelog.added.length}`.green);
+    this.report(`Restored: \t${changelog.restored.length}`.blue);
+    this.report(
+        (
+            `Removed: \t${changelog.removed.length}` +
+            (changelog.removed.length > 0 ? ' (' + changelog.removed.join(', ') + ')' : '')
+        ).magenta
+    );
+    console.groupEnd();
+
+    if(totalFetches === 0) {
+        this.report('✓ All icons are up-to-date.');
+    }
+};
 
 /**
  * Default settings for SVGo optimisation

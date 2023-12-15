@@ -7,7 +7,8 @@ import {
     printToConsole,
     sendRequest,
     performMigrations,
-    warn
+    warn,
+    visualiseChangelog
 }  from './utils.js';
 
 export default class IconsSync {
@@ -16,8 +17,9 @@ export default class IconsSync {
     request = sendRequest;
     performMigrations = performMigrations;
     warn = warn;
+    visualiseChangelog = visualiseChangelog;
 
-    localStorage = [];
+    eventsList = [];
 
     constructor(options) {
         for(const key of Object.keys(options)) {
@@ -132,8 +134,8 @@ export default class IconsSync {
             // If icon was renamed, saving icon both under old and new names
             if(icon.isRenamed) {
                 const data = {
-                    newName: icon.name,
-                    oldName: icon.previousNames.slice(-1)[0]
+                    presentName: icon.name,
+                    previousNames: icon.previousNames.filter(v => v !== icon.name)
                 };
                 
                 // If the icon's name reverted to the previous one, new name should be deleted from the list of previous names
@@ -145,7 +147,7 @@ export default class IconsSync {
                 // Checking if able to write a new file
                 } else if(await exists(icon)) {
                     // Reverting icon's name to the old one
-                    icon.name = data.oldName;
+                    icon.name = data.previousNames.slice(-1)[0];
                     // Reporting about the situation
                     this.warn('renamed-unable-to-save', data);
                     
@@ -179,8 +181,8 @@ export default class IconsSync {
                 // Reminding to remove usages of the old names from codebase
                 if(icon.previousNames.length > 0) {
                     const data = {
-                        oldName: icon.previousNames,
-                        newName: icon.name
+                        previousNames: icon.previousNames,
+                        presentName: icon.name
                     };
 
                     this.warn('rename-reminder', data);
@@ -202,13 +204,18 @@ export default class IconsSync {
         }));
 
         // Returns changelog without superfluous data
-        return {
+        const output = {
             changelog: Object.keys(changelog).reduce((acc, key) => { 
                 acc[key] = changelog[key].map((icon) => icon.name + '.svg'); 
                 return acc; 
             }, {}),
-            totalFetches: downloadList.length
+            totalFetches: downloadList.length,
+            reports: this.eventsList
         };
+
+
+        this.visualiseChangelog(output);
+        return output;
     }
 
     /**

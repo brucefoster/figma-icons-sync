@@ -24,11 +24,10 @@ export const sync = async (figmaLink, config, forceReload = false) => {
 
     const { fileId, nodeId } = extractFileIdsFromUrl(figmaLink);
 
+    const outputDirectory = conf('output', false, './icons/');
     const options = {
         token: conf('apiToken'),
-        outputDirectory: conf('output', false, './icons/').endsWith('/') 
-                            ? conf('output', false, './icons/')
-                            : conf('output', false, './icons/') + '/',
+        outputDirectory: outputDirectory + (outputDirectory.endsWith('/') ? '' : '/'),
         ignoreSubfolders: conf('ignoreSubfolders', false, false),
 
         fileId: fileId,
@@ -41,7 +40,7 @@ export const sync = async (figmaLink, config, forceReload = false) => {
         },
 
         cli: {
-            enabled: false,
+            enabled: conf('enableConsoleOutput', false, false),
         },
 
         svgoConfig: conf('svgoConfig', false, _defaultSVGoSettings)
