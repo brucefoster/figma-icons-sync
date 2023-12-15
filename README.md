@@ -81,6 +81,10 @@ const options = {
     // Default: false
     ignoreSubfolders: true,
 
+    // Enables the same output to the console as in CLI mode.
+    // Default: false 
+    enableConsoleOutput: true,
+
     // Settings for monochromatic icons: enable removing fill="" and stroke="" attributes so you can control them with CSS
     monochrome: {
         // Array of colors (without #). An icon will be considered monochrome if it is filled only with one of these colors.
