@@ -20,7 +20,7 @@ The only requirement is that the icons must be components (either components or 
 
 The tool will also alert you in the following situations: 
 - when the name of a remote icon changes, 
-- when a remote icon has the same name as your local icon.
+- when a new icon's name conflicts with the name of another icon in your filesystem.
 
 ## Prerequisites
 Get a [Figma personal access token](https://www.figma.com/developers/api#access-tokens) on behalf of the user that can view files with icons.
