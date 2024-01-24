@@ -554,22 +554,31 @@ class IconsSync {
 
         const calcIconHash = (contents, recursively = false) => {
             const vectorData = [];
+            const pushData = (vector) => {
+                vectorData.push([
+                    vector.fillGeometry, 
+                    vector.fills,
+                    vector.strokes, 
+                    vector.strokeWeight,
+                    vector.strokeAlign,
+                    vector.strokeGeometry,
+                    vector.strokeCap,
+                    vector.constraints,
+                    vector.effects,
+                    'clipsContent' in vector ? vector.clipsContent : ''
+                ]);
+            };
+
+            // Including component's props into hash
+            if(recursively === false) {
+                pushData(contents);
+            }
 
             for (const child of contents.children) {
-                // Includes data of fill & stroke into hash 
+                // Includes children props into hash 
                 if('fillGeometry' in child || 'strokes' in child) {
-                    vectorData.push([
-                        child.fillGeometry, 
-                        child.fills,
-                        child.strokes, 
-                        child.strokeWeight,
-                        child.strokeAlign,
-                        child.strokeGeometry,
-                        child.strokeCap,
-                        child.constraints,
-                        child.effects
-                    ]);
-                } 
+                    pushData(child);
+                }
                 
                 if('children' in child) {
                     vectorData.push(...calcIconHash(child, true));
