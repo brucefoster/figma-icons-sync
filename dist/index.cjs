@@ -48,7 +48,7 @@ function sendRequest(endpoint, unpackJson = true, useAuth = true) {
 
     return fetch(endpoint, options)
         .then((response) => {
-            if(!response.ok) {
+            if(!response.ok || response.status !== 200) {
                 throw new Error(`Unable to reach ${endpoint}, status ${response.status}`);
             }
 
