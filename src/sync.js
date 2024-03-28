@@ -154,7 +154,7 @@ export default class IconsSync {
             }
         }
 
-        this.updateLocalIconsDb(iconsContents.map(icon => {
+        this.updateLocalIconsDb(iconsContents.filter(icon => icon != null).map(icon => {
             // Minifying local database by removing icon contents and non-required params
             delete icon.svg;
             delete icon.isRenamed;
@@ -362,6 +362,8 @@ export default class IconsSync {
             ignore: ['/']
         };
         frameContents.forEach((frame) => {
+            if(frame.visible === false) return;
+
             if(frame.type === 'COMPONENT') {
                 // Single icon was found
 
