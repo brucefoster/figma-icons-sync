@@ -1,6 +1,6 @@
 {
   "name": "figma-icons-sync",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Keep your local icons in sync with the Figma files of your design team",
   "type": "module",
   "main": "src/index.js",
@@ -28,7 +28,7 @@
     "download",
     "design"
   ],
-  "author": "Alex",
+  "author": "Sascha B.",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/brucefoster/figma-icons-sync/issues"

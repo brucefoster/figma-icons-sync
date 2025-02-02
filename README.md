@@ -1,49 +1,48 @@
-## Sync your local icons with Figma
-A NodeJS-based tool that keeps your local icons in sync with the icons from Figma files of your design team and optimizes them automatically with [SVGo](https://github.com/svg/svgo/tree/main).
+## Sync Your Local Icons with Figma
+A Node.js tool to keep your local icons in sync with your design team's Figma files and optimize them using [SVGo](https://github.com/svg/svgo/tree/main).
 
-CLI mode is available as well. 
+CLI mode is also available.
 
 ## Installation
-Via npm:
+Install it via npm:
 ```
 npm install -g figma-icons-sync
 ```
 
-## How does this work
-Upon every call, this tool: 
-1. scans the frame containing icons in the Figma file,
-2. determines changes with icons stored locally,
-3. and fetches all the changes optimizing them via SVGo with your preferred config.
+## How It Works
+Every time you run the tool:
+1. it scans the Figma frame that contains the icons,
+2. checks if anything has changed compared to the local versions,
+3. fetches the updates and optimizes them using SVGo with your settings.
 
-There are no special requirements to frame structure — feel free to use Auto Layout, nested frames, groups, add headings, descriptions and etc.
-The only requirement is that the icons must be components (either components or component sets).
+No special frame structure required — feel free to use Auto Layout, nested frames, groups, descriptions and memes. Just make sure the icons are components (individual components or component sets).
 
-The tool will also alert you in the following situations: 
-- when the name of a remote icon changes, 
-- when a new icon's name conflicts with the name of another icon in your filesystem.
+The tool will notify you if:
+- a remote icon's name changes,
+- a new icon name conflicts with an existing one in your local files.
 
 ## Prerequisites
-Get a [Figma personal access token](https://www.figma.com/developers/api#access-tokens) on behalf of the user that can view files with icons.
-On Professional and higher plans you can just add a dummy read-only user to the project and issue a token under their profile.
+You’ll need a [Figma personal access token](https://www.figma.com/developers/api#access-tokens) for a user who has access to the icons.  
+For Professional or higher plans, you can add a dummy read-only user to the project and generate a token for them.
 
-## API usage
-Import the module and integrate it into the front-end developer's workflow using the ESM approach:
+## API Usage
+To use the module, import it in your project:  
 ```javascript
 import { sync } from 'figma-icons-sync';
 ```
 
-Or connect it using CJS approach (with `require`):
+Or if you're using `require`:  
 ```javascript
 const { sync } = require('figma-icons-sync');
 ```
 
-Then, call the `sync` method, passing the URL of the Figma frame that contains the icons:
+Then call `sync`, passing in the URL of the Figma frame with the icons:
 ```javascript
 const options = {
     apiToken: '%Insert your token here%',
 };
 
-// Copy the link to the frame containing icons (Right-click on the frame in Figma → Copy link) and pass it as the first arg:
+// Copy the frame link from Figma (Right-click → Copy Link) and pass it as the first argument:
 sync(
     'https://www.figma.com/file/71UBnODS8DUi06bjMlCH/UI-Kit?type=design&node-id=4909-11807', 
     options
@@ -54,8 +53,8 @@ sync(
 });
 ```
 
-To force a re-fetch of all icons, pass `true` as the third argument to `sync`.
-*Note. If there is a remote icon sharing the same name, force re-fetch will overwrite local files.*
+To force a re-fetch of all icons, pass `true` as the third argument:
+*Note: This will overwrite any local files if there's a remote icon with the same name.*
 ```javascript
 sync(
     'https://www.figma.com/file/71UBnODS8DUi06bjMlCH/UI-Kit?type=design&node-id=4909-11807', 
@@ -63,64 +62,69 @@ sync(
     true
 )
 .catch(error => console.log(error))
-.then((response) => { 
+.then(response => { 
     console.log(response);
 });
 ```
 
-Customize the options to suit your work processes:
+You can also customize the options for your needs:
 ```javascript
 const options = {
-    // Figma token, required
-    apiToken: '%Insert your token here%',
+    // Figma token, required to work
+    apiToken: '%Insert your token here%', 
 
-    // Directory to upload icons to, default: ./icons/
+    // Folder to save icons, default: ./icons/
     output: './icons/',
 
-    // Ignore subfolders in icons' names: if set to true, an icon named «socials/facebook» will be placed in the «socials» subfolder
+    // Ignore subfolders in icon names. When set to true, an icon like «socials/facebook» 
+    // will be renamed to «socials_facebook» instead of being placed in a «socials» subfolder. 
     // Default: false
     ignoreSubfolders: true,
 
-    // Enables the same output to the console as in CLI mode.
-    // Default: false 
+    // Show output in the console as in CLI mode (default: false)
     enableConsoleOutput: true,
 
-    // Settings for monochromatic icons: enable removing fill="" and stroke="" attributes so you can control them with CSS
+    // Settings for removing fill and stroke in monochrome icons
     monochrome: {
-        // Array of colors (without #). An icon will be considered monochrome if it is filled only with one of these colors.
+        // Icons will be considered monochrome if filled with one of the matching colors (remove leading #).
         // Default: ['black', '000000']
         colors: ['FFFFFF'],
-        // Remove fill="color" from monochromatic icons
+
+        // Remove the fill color attribute
         removeFill: true,
-        // Remove stroke="color" from monochromatic icons
-        removeStroke: true
+
+        // Remove the stroke color attribute
+        removeStroke: true,
     },
 
     // SVGo configuration. See documentation here:
     // https://github.com/svg/svgo/tree/main#configuration
     svgoConfig: {
-        multipass: true
+        multipass: true,  // Run optimization multiple times
     }
 };
 ```
 
-## CLI usage
-With default settings:
+## CLI Usage
+Run the tool from the command line with default settings:  
 ```bash
 icons-sync -t FIGMA_TOKEN "https://www.figma.com/file/..."
 ```
-With custom output folder (default ./icons/):
+
+To specify a custom output folder (default is `./icons/`):  
 ```bash
 icons-sync -t FIGMA_TOKEN -o "./public/icons/" "https://www.figma.com/file/..."
 ```
-With custom SVGo config (passed as link to .json configuration):
+
+To use a custom SVGo config:  
 ```bash
 icons-sync -t FIGMA_TOKEN --svgo-conf "svgoconfig.json" "https://www.figma.com/file/..."
 ```
-Help for advanced usage:
+
+For more options and advanced usage:  
 ```bash
 icons-sync --help
 ```
 
 ## Contribution & Support
-Feel free to make a PR or [to open an issue](https://github.com/brucefoster/figma-icons-sync/issues/new) if you're facing troubles.
+Found a bug or have an idea? [Open an issue](https://github.com/brucefoster/figma-icons-sync/issues/new) or feel free to submit a PR!
