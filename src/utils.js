@@ -58,7 +58,7 @@ export function sendRequest(endpoint, unpackJson = true, useAuth = true) {
  * @param {string} url  URL to Figma frame containing icons
  */
 export function extractFileIdsFromUrl(url) {
-    const extractIdsRegex = /www\.figma\.com\/file\/([\w\d]+)\/.+(?:\?|\&)node-id=([\d\-]+)/m;
+    const extractIdsRegex = /www\.figma\.com\/(?:file|design)\/([\w\d]+)\/.+(?:\?|\&)node-id=([\d\-]+)/m;
     const matches = url.match(extractIdsRegex);
 
     if(matches === null || matches.length !== 3) {
