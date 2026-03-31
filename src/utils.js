@@ -226,7 +226,7 @@ export const _defaultSVGoSettings = {
             name: 'preset-default',
             params: {
                 overrides: {
-                    removeViewBox: false,
+                    cleanupIds: false,
                 },
             },
         },
