@@ -1,6 +1,6 @@
 {
   "name": "figma-icons-sync",
-  "version": "1.1.10",
+  "version": "1.1.11",
   "description": "Keep your local icons in sync with the Figma files of your design team",
   "type": "module",
   "main": "src/index.js",
@@ -37,13 +37,13 @@
   "dependencies": {
     "colors": "^1.4.0",
     "commander": "^11.0.0",
-    "svgo": "^4.0.1",
+    "svgo": "^4.0.2",
     "transliteration": "^2.6.1"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "devDependencies": {
-    "rollup": "^4.46.1"
+    "rollup": "^4.59.0"
   }
 }
